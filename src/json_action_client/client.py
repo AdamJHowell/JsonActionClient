@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # JsonActionClient/src/json_action_client/client.py
+
 import json
 import logging
 
