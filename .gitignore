@@ -1,0 +1,23 @@
+##############
+## My files ##
+##############
+[pP]rivate[iI]nfo.*
+network[vV]ariables.*
+work[nN]etwork[vV]ariables.*
+
+############
+## Python ##
+############
+*.py[co]
+.pypirc
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
+
+
+####################
+## JetBrains IDEs ##
+####################
+.idea/
+*.iml
