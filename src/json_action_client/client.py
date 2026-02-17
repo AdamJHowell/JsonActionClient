@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# TestVariantFormat/JsonAction/json_action_client.py
+# JsonActionClient/src/json_action_client/client.py
 import json
 import logging
 
