@@ -40,7 +40,7 @@ with client:
         "authToken": client.auth_token
     }
     response = client.post_json( list_databases_json )
-    print( f"Response: {json.dumps( response, indent = 3 )}" )
+    print( f"Response: {response}" )
 ```
 
 This connection is considered the most secure and when done properly will be adequate to use over public networks. In the example above a client certificate and CA certificate are used to enable mutual-TLS (mTLS) with the [FairCom](https://www.faircom.com/) server.
@@ -65,7 +65,7 @@ with client:
         "authToken": client.auth_token
     }
     response = client.post_json( list_databases_json )
-    print( f"Response: {json.dumps( response, indent = 3 )}" )
+    print( f"Response: {response}" )
 ```
 
 This connection is also considered secure enough to use over public networks when properly configured. Ensure the [FairCom server TLS settings](https://docs.faircom.com/docs/en/UUID-af006a2a-a08c-afa5-806a-f5f5979a1ae2.html) are adequate for modern threats (particularly the allowed cipher suites).
@@ -86,7 +86,7 @@ with client:
         "authToken": client.auth_token
     }
     response = client.post_json( list_databases_json )
-    print( f"Response: {json.dumps( response, indent = 3 )}" )
+    print( f"Response: {response}" )
 ```
 
 An insecure connection should only be used on private networks where security is guaranteed via other means (e.g., an enterprise-grade firewall).
