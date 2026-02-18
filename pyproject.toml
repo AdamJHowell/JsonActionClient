@@ -21,4 +21,7 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/repo"
+"Homepage" = "https://github.com/AdamJHowell/JsonActionClient"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/json_action_client"]
