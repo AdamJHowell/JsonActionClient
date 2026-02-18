@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# JsonActionClient/src/json_action_client/client.py
+# src/json_action_client/client.py
 
 import json
 import logging
@@ -41,18 +41,23 @@ Example client certificate usage:
 class JsonActionClient:
 
     def __init__( self, endpoint: str, ca_cert: str = None, client_cert: str = None, client_pass: str = None,
-        description: str = None ) -> None:
+        description: str = None, timeout = 30 ) -> None:
         """
         Construct the JsonActionClient class.
 
         :param endpoint: The JSON Action endpoint.
         :param ca_cert: An optional CA certificate file, in PEM format, to use when verifying the server certificate.
         :param client_cert: An optional client key pair (certificate and key) file, in PEM format, to use for mTLS authentication.
+        :param client_pass: The passphrase used to unlock the client key.  If the client key is not encrypted, leave blank.
+        :param description: An optional description string to give to this session.
+            This description is used by FairCom server administrators to distinguish different sessions.
+        :param timeout: How long the FairCom server should wait before considering this session inactive.
+            When this timer is reached, the server will close out the session and the authToken will no longer be valid.
         """
         self.endpoint = endpoint
         self.auth_token = None
         self.description = description
-        self.idle_connection_timeout_seconds = 30
+        self.idle_connection_timeout_seconds = timeout
         self._session = requests.Session()
         if ca_cert:
             self._session.verify = ca_cert
@@ -63,10 +68,9 @@ class JsonActionClient:
         """
         Enters the runtime context related to this object.
 
-        This method validates that :py:meth:`~JsonActionClient.login` has been
-        called before entering the ``with`` block by checking for a valid ``auth_token``.
+        This method validates that ``login()`` has been called before entering the ``with`` block by checking for a valid ``auth_token``.
 
-        :raises RuntimeError: If the ``auth_token`` is not set (i.e., :py:meth:`~JsonActionClient.login` was not successfully called).
+        :raises RuntimeError: If the ``auth_token`` is not set (i.e., ``login()`` was not successfully called).
         :returns: The client instance itself.
         """
         # We expect login() to be called explicitly before a 'with' block.
@@ -79,16 +83,13 @@ class JsonActionClient:
         """
         Handles cleanup when exiting a context manager block.
 
-        If a session is active (auth_token is set), this method attempts to log out
-        using :py:meth:`~JsonActionClient.logout`. Any exceptions during logout are
-        caught and logged as warnings to prevent masking an exception that might have
-        occurred within the ``with`` block.
+        If a session is active (auth_token is set), this method attempts to log out using ``logout()``.
+        Any exceptions during logout are caught and logged as warnings to prevent masking an exception that might have occurred within the ``with`` block.
 
         :param exc_type: The exception type (class), if an exception occurred in the block.
         :param exc_val: The exception instance, if an exception occurred in the block.
         :param exc_tb: The traceback object, if an exception occurred in the block.
-        :returns: ``False``, which instructs the Python runtime to propagate any exception
-                  that occurred inside the ``with`` block.
+        :returns: ``False``, which instructs the Python runtime to propagate any exception that occurred inside the ``with`` block.
         """
         if self.auth_token:
             try:
@@ -103,7 +104,11 @@ class JsonActionClient:
         Post JSON data to the endpoint and return the response.
 
         :param data: The JSON data to post.
-        :return: The response.
+        :returns: The response.
+        :raises JsonActionApiError: If the FairCom server returns a non-zero errorCode.
+        :raises JsonActionConnectionError: If an HTTP connection cannot be established to the FairCom server.
+            This can happen if the server is not running, if the wrong port is used, or for other network related problems.
+        :raises JsonActionError: If timeouts, TLS, or other network errors occur.
         """
         logger = logging.getLogger( __name__ )
         action = data.get( "action", "unknown" )
@@ -144,7 +149,6 @@ class JsonActionClient:
 
         :param username: The username to log in with.
         :param password: The password to log in with.
-        :return: The authToken for the session.
         :raises ValueError: If the client certificate is missing AND credentials are not provided.
         """
         params = { }

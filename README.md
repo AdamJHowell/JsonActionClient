@@ -12,7 +12,7 @@ Exceptions are caught and re-raised as a JsonActionError (or a derived exception
 
 ## What it does not do
 
-The client does not perform any "keepalive" operations.  By default, the session will expire after 30 seconds.
+The client does not perform any "keepalive" operations.  By default, the session will expire after 30 seconds.  This timeout can be set by using the "timeout" parameter when instantiating the client.
 
 ## Installation
 
@@ -27,7 +27,7 @@ Both secure and insecure connections are possible. All certificate files should 
 ### Example mTLS usage:
 
 ```Python
-from JsonAction.json_action_client import JsonActionClient
+from json_action_client import JsonActionClient, JsonActionConnectionError, JsonActionApiError
 
 client = JsonActionClient( "https://127.0.0.1:8444/api", ca_cert = "/FairCom/ca.crt", client_cert = "/FairCom/client.pem" )
 client.login()
@@ -52,7 +52,7 @@ More details on FairCom TLS [can be found here](https://docs.faircom.com/docs/en
 ### Example TLS (one-sided) and credential usage:
 
 ```Python
-from JsonAction.json_action_client import JsonActionClient
+from json_action_client import JsonActionClient, JsonActionConnectionError, JsonActionApiError
 
 client = JsonActionClient( "https://127.0.0.1:8443/api", ca_cert = "/FairCom/ca.crt" )
 client.login( "admin", "ADMIN" )
@@ -73,7 +73,7 @@ This connection is also considered secure enough to use over public networks whe
 ### Example insecure usage (credentials without TLS):
 
 ```Python
-from JsonAction.json_action_client import JsonActionClient
+from json_action_client import JsonActionClient, JsonActionConnectionError, JsonActionApiError
 
 client = JsonActionClient( "http://127.0.0.1:8080/api" )
 client.login( "admin", "ADMIN" )
