@@ -43,6 +43,7 @@ class JsonActionClient:
     def __init__( self, endpoint: str, ca_cert: str = None, client_cert: str = None, client_pass: str = None, description: str = None ) -> None:
         """
         Construct the JsonActionClient class.
+
         :param endpoint: The JSON Action endpoint.
         :param ca_cert: An optional CA certificate file, in PEM format, to use when verifying the server certificate.
         :param client_cert: An optional client key pair (certificate and key) file, in PEM format, to use for mTLS authentication.
@@ -98,6 +99,7 @@ class JsonActionClient:
     def post_json( self, data: dict ) -> dict:
         """
         Post JSON data to the endpoint and return the response.
+
         :param data: The JSON data to post.
         :return: The response.
         """
@@ -137,6 +139,7 @@ class JsonActionClient:
     def login( self, username: str = None, password: str = None ) -> None:
         """
         Log in to the JSON Action server, storing the authToken in the configuration, and return the authToken.
+
         :param username: The username to log in with.
         :param password: The password to log in with.
         :return: The authToken for the session.
@@ -174,12 +177,16 @@ class JsonActionClient:
 
 
 class JsonActionError( Exception ):
-    """Base exception for FairCom JSON Action API errors."""
+    """
+    Base exception for FairCom JSON Action API errors.
+    """
     pass
 
 
 class JsonActionConnectionError( JsonActionError ):
-    """Exception for errors preventing a request from completing (e.g., server down)."""
+    """
+    Exception for errors preventing a request from completing (e.g., server down).
+    """
 
     def __init__( self, message, endpoint_url ):
         # Call the base class constructor with the message
@@ -190,7 +197,9 @@ class JsonActionConnectionError( JsonActionError ):
 
 
 class JsonActionApiError( JsonActionError ):
-    """FairCom API returned a non-zero error code."""
+    """
+    FairCom API returned a non-zero error code.
+    """
 
     def __init__( self, message, error_code: int, error_message: str, action: str = None, response_json: dict = None ) -> None:
         super().__init__( message )
