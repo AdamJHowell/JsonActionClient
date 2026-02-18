@@ -40,7 +40,8 @@ Example client certificate usage:
 
 class JsonActionClient:
 
-    def __init__( self, endpoint: str, ca_cert: str = None, client_cert: str = None, client_pass: str = None, description: str = None ) -> None:
+    def __init__( self, endpoint: str, ca_cert: str = None, client_cert: str = None, client_pass: str = None,
+        description: str = None ) -> None:
         """
         Construct the JsonActionClient class.
 
@@ -51,6 +52,7 @@ class JsonActionClient:
         self.endpoint = endpoint
         self.auth_token = None
         self.description = description
+        self.idle_connection_timeout_seconds = 30
         self._session = requests.Session()
         if ca_cert:
             self._session.verify = ca_cert
@@ -151,7 +153,7 @@ class JsonActionClient:
             params["username"] = username
             params["password"] = password
         # Set the session timeout to 30 seconds.
-        params["idleConnectionTimeoutSeconds"] = 30
+        params["idleConnectionTimeoutSeconds"] = self.idle_connection_timeout_seconds
 
         create_session = {
             "api":    "admin",
