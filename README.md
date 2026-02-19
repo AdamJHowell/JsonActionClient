@@ -1,6 +1,6 @@
 # JsonActionClient
 
-A wrapper for the FairCom JSON Action API.
+A Python wrapper for the FairCom JSON Action API.
 
 ## What it does
 
