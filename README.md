@@ -27,7 +27,7 @@ Both secure and insecure connections are possible. All certificate files should 
 ### Example mTLS usage:
 
 ```Python
-from json_action_client import JsonActionClient, JsonActionConnectionError, JsonActionApiError
+from json_action_client import JsonActionClient
 
 client = JsonActionClient( "https://127.0.0.1:8444/api", ca_cert = "/FairCom/ca.crt", client_cert = "/FairCom/client.pem" )
 client.login()
@@ -47,7 +47,7 @@ More details on FairCom TLS [can be found here](https://docs.faircom.com/docs/en
 ### Example TLS (one-sided) and credential usage:
 
 ```Python
-from json_action_client import JsonActionClient, JsonActionConnectionError, JsonActionApiError
+from json_action_client import JsonActionClient
 
 client = JsonActionClient( "https://127.0.0.1:8443/api", ca_cert = "/FairCom/ca.crt" )
 client.login( "admin", "ADMIN" )
@@ -63,7 +63,7 @@ This connection is also considered secure enough to use over public networks whe
 ### Example insecure usage (credentials without TLS):
 
 ```Python
-from json_action_client import JsonActionClient, JsonActionConnectionError, JsonActionApiError
+from json_action_client import JsonActionClient
 
 client = JsonActionClient( "http://127.0.0.1:8080/api" )
 client.login( "admin", "ADMIN" )
