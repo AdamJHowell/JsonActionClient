@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "faircom-json-action-client"  # MUST BE UNIQUE on PyPI
 version = "0.0.2"
 authors = [
-    { name = "Your Name", email = "your.email@example.com" },
+    { name = "Adam Howell", email = "698228+AdamJHowell@users.noreply.github.com" },
 ]
 description = "A helper client for FairCom JSON Action API"
 readme = "README.md"
