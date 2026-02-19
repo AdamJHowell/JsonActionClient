@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "faircom-json-action-client"  # MUST BE UNIQUE on PyPI
-version = "0.0.2"
+name = "faircom-json-action-client"
+version = "0.0.3"
 authors = [
     { name = "Adam Howell", email = "698228+AdamJHowell@users.noreply.github.com" },
 ]

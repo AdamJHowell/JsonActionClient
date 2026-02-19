@@ -181,6 +181,43 @@ class JsonActionClient:
         }
         self.post_json( delete_session )
 
+    def build_basic_request( self, api: str = None, action: str = None ) -> dict:
+        """
+        Helper to build a basic request dictionary with standard fields initialized.
+        Automatically includes the current authToken if logged in.
+
+        Usage::
+            # Create the skeleton request (authToken is auto-injected).
+            req = client.build_basic_request( api = "db", action = "listDatabases" )
+
+            # Customize it.
+            req['params']['maxRecords'] = 20
+
+            # Send it.
+            response = client.post_json( req )
+
+        :param api: The target API (e.g., 'db', 'admin').
+        :param action: The action to perform.
+        :return: A dictionary with 'api', 'params', 'responseOptions', and 'authToken'.
+        """
+        # Initialize the standard request structure.
+        request = {
+            "params":          { },
+            "responseOptions": { },
+            # Automatically inject the authToken from the client instance.
+            "authToken":       self.auth_token if self.auth_token else ""
+        }
+
+        # The API is optional is version 13.1.5 and higher.
+        if api:
+            request["api"] = api
+
+        # Add the action.
+        if action:
+            request["action"] = action
+
+        return request
+
 
 class JsonActionError( Exception ):
     """

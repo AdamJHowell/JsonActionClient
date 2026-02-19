@@ -12,7 +12,7 @@ Exceptions are caught and re-raised as a JsonActionError (or a derived exception
 
 ## What it does not do
 
-The client does not perform any "keepalive" operations.  By default, the session will expire after 30 seconds.  This timeout can be set by using the "timeout" parameter when instantiating the client.
+The client does not perform any "keepalive" operations. By default, the session will expire after 30 seconds. This timeout can be set by using the "timeout" parameter when instantiating the client.
 
 ## Installation
 
@@ -33,12 +33,7 @@ client = JsonActionClient( "https://127.0.0.1:8444/api", ca_cert = "/FairCom/ca.
 client.login()
 
 with client:
-    list_databases_json = {
-        "api":       "db",
-        "action":    "listDatabases",
-        "params":    { },
-        "authToken": client.auth_token
-    }
+    list_databases_json = client.build_basic_request( api = "db", action = "listDatabases" )
     response = client.post_json( list_databases_json )
     print( f"Response: {response}" )
 ```
@@ -58,12 +53,7 @@ client = JsonActionClient( "https://127.0.0.1:8443/api", ca_cert = "/FairCom/ca.
 client.login( "admin", "ADMIN" )
 
 with client:
-    list_databases_json = {
-        "api":       "db",
-        "action":    "listDatabases",
-        "params":    { },
-        "authToken": client.auth_token
-    }
+    list_databases_json = client.build_basic_request( api = "db", action = "listDatabases" )
     response = client.post_json( list_databases_json )
     print( f"Response: {response}" )
 ```
@@ -79,12 +69,7 @@ client = JsonActionClient( "http://127.0.0.1:8080/api" )
 client.login( "admin", "ADMIN" )
 
 with client:
-    list_databases_json = {
-        "api":       "db",
-        "action":    "listDatabases",
-        "params":    { },
-        "authToken": client.auth_token
-    }
+    list_databases_json = client.build_basic_request( api = "db", action = "listDatabases" )
     response = client.post_json( list_databases_json )
     print( f"Response: {response}" )
 ```
