@@ -4,20 +4,20 @@ build-backend = "hatchling.build"
 
 [project]
 name = "faircom-json-action-client"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
     { name = "Adam Howell", email = "698228+AdamJHowell@users.noreply.github.com" },
 ]
 description = "A helper client for FairCom JSON Action API"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "requests",
+    "requests >= 2.33.0",
 ]
 
 [project.urls]
