@@ -29,7 +29,7 @@ Both secure and insecure connections are possible. All certificate files should 
 ```Python
 from json_action_client import JsonActionClient
 
-client = JsonActionClient( "https://127.0.0.1:8444/api", ca_cert = "/FairCom/ca.crt", client_cert = "/FairCom/client.pem" )
+client = JsonActionClient( "https://127.0.0.1:8444/api", ca_cert = "/FairCom/ca.crt", cert_file = "/FairCom/client.pem" )
 client.login()
 
 with client:
