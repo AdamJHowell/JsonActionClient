@@ -8,6 +8,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
 
+
 """
 Example credentials usage:
     client = JsonActionClient( "http://127.0.0.1:8080/api" )
@@ -46,6 +47,7 @@ class EncryptedCertAdapter( HTTPAdapter ):
     Use this class only if the client key is encrypted.
     """
 
+
     def __init__( self, cert_file: str, key_file: str | None, password: str, **kwargs ):
         """
         Initialize the adapter with the client certificate, key, and password.
@@ -58,6 +60,7 @@ class EncryptedCertAdapter( HTTPAdapter ):
         self.key_file = key_file
         self.password = password
         super().__init__( **kwargs )
+
 
     def init_poolmanager( self, *args, **kwargs ):
         # Create a default urllib3 SSL context.
@@ -74,12 +77,14 @@ class EncryptedCertAdapter( HTTPAdapter ):
 
 class JsonActionClient:
 
-    def __init__( self, endpoint: str,
-        ca_cert: str = None,
-        cert_file: str = None,
-        key_file: str = None,
-        client_pass: str = None,
-        description: str = None,
+    def __init__(
+        self,
+        endpoint: str,
+        ca_cert: str | None = None,
+        cert_file: str | None = None,
+        key_file: str | None = None,
+        client_pass: str | None = None,
+        description: str | None = None,
         session_idle_timeout: int = 300,
         http_timeout: int = 30 ) -> None:
         """
@@ -88,7 +93,7 @@ class JsonActionClient:
         :param endpoint: The JSON Action endpoint.
         :param ca_cert: An optional CA certificate file, in PEM format, to use when verifying the server certificate.
         :param cert_file: An optional client certificate or key pair (certificate and key) file, in PEM format, to use for mTLS authentication.
-        :param cert_file: An optional client key file, in PEM format, to use for mTLS authentication.
+        :param key_file: An optional client key file, in PEM format, to use for mTLS authentication.
         :param client_pass: An optional passphrase used to unlock the client key.  If the client key is not encrypted, leave blank.
         :param description: An optional description string to give to this session.
             This description is used by FairCom server administrators to distinguish different sessions.
@@ -121,6 +126,7 @@ class JsonActionClient:
                 # Standard unencrypted key behavior.
                 self._session.cert = cert_file
 
+
     def __enter__( self ):
         """
         Enters the runtime context related to this object.
@@ -135,6 +141,7 @@ class JsonActionClient:
         if not self.auth_token:
             raise RuntimeError( "Must call login() before using context manager." )
         return self
+
 
     def __exit__( self, exc_type, exc_val, exc_tb ):
         """
@@ -157,6 +164,7 @@ class JsonActionClient:
         # Close the session to free up connection pools.
         self._session.close()
         return False
+
 
     def post_json( self, data: dict ) -> dict:
         """
@@ -205,7 +213,8 @@ class JsonActionClient:
             # Using the base JsonActionError for anything else
             raise JsonActionError( f"Request failed: {request_error}" ) from request_error
 
-    def login( self, username: str = None, password: str = None ) -> None:
+
+    def login( self, username: str | None = None, password: str | None = None ) -> None:
         """
         Log in to the JSON Action server, storing the authToken in the configuration, and return the authToken.
 
@@ -232,6 +241,7 @@ class JsonActionClient:
         # Store the authToken in the configuration.
         self.auth_token = response['authToken']
 
+
     def logout( self ) -> None:
         """
         Log out of the JSON Action server.
@@ -244,7 +254,8 @@ class JsonActionClient:
         self.post_json( delete_session )
         self.auth_token = None
 
-    def build_basic_request( self, api: str = None, action: str = None ) -> dict:
+
+    def build_basic_request( self, api: str | None = None, action: str | None = None ) -> dict:
         """
         Helper to build a basic request dictionary with standard fields initialized.
         Automatically includes the current authToken if logged in.
@@ -294,6 +305,7 @@ class JsonActionConnectionError( JsonActionError ):
     Exception for errors preventing a request from completing (e.g., server down).
     """
 
+
     def __init__( self, message, endpoint_url ):
         # Call the base class constructor with the message
         super().__init__( message )
@@ -307,7 +319,8 @@ class JsonActionApiError( JsonActionError ):
     FairCom API returned a non-zero error code.
     """
 
-    def __init__( self, error_code: int, error_message: str, action: str = "unknown", response_json: dict = None ) -> None:
+
+    def __init__( self, error_code: int, error_message: str, action: str = "unknown", response_json: dict | None = None ) -> None:
         self.error_code = error_code
         self.error_message = error_message
         self.action = action
