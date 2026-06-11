@@ -180,7 +180,7 @@ class JsonActionClient:
         action = data.get( "action", "unknown" )
         try:
             # Use the persistent session from the class constructor.
-            self.logger.debug( f"Posting '{action}' to to {self.endpoint}..." )
+            self.logger.debug( f"Posting '{action}' to {self.endpoint}..." )
             post_response = self._session.post( self.endpoint, json = data, timeout = self.http_timeout )
             # This raises requests.exceptions.HTTPError for 4xx/5xx status codes.
             post_response.raise_for_status()
