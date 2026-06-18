@@ -111,7 +111,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "requests", specifier = "==2.34.2" },
+    { name = "requests", specifier = ">=2.34.2" },
     { name = "urllib3", specifier = ">=2.7.0" },
 ]
 

@@ -8,7 +8,6 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
 
-
 """
 Example credentials usage:
     client = JsonActionClient( "http://127.0.0.1:8080/api" )
@@ -47,7 +46,6 @@ class EncryptedCertAdapter( HTTPAdapter ):
     Use this class only if the client key is encrypted.
     """
 
-
     def __init__( self, cert_file: str, key_file: str | None, password: str, **kwargs ):
         """
         Initialize the adapter with the client certificate, key, and password.
@@ -60,7 +58,6 @@ class EncryptedCertAdapter( HTTPAdapter ):
         self.key_file = key_file
         self.password = password
         super().__init__( **kwargs )
-
 
     def init_poolmanager( self, *args, **kwargs ):
         # Create a default urllib3 SSL context.
@@ -126,7 +123,6 @@ class JsonActionClient:
                 # Standard unencrypted key behavior.
                 self._session.cert = cert_file
 
-
     def __enter__( self ):
         """
         Enters the runtime context related to this object.
@@ -141,7 +137,6 @@ class JsonActionClient:
         if not self.auth_token:
             raise RuntimeError( "Must call login() before using context manager." )
         return self
-
 
     def __exit__( self, exc_type, exc_val, exc_tb ):
         """
@@ -165,7 +160,6 @@ class JsonActionClient:
         self._session.close()
         return False
 
-
     def post_json( self, data: dict ) -> dict:
         """
         Post JSON data to the endpoint and return the response.
@@ -177,6 +171,10 @@ class JsonActionClient:
             This can happen if the server is not running, if the wrong port is used, or for other network related problems.
         :raises JsonActionError: If timeouts, TLS, or other network errors occur.
         """
+
+        # Hide this specific function's internal execution from Pytest's stack trace.
+        __tracebackhide__ = True
+
         action = data.get( "action", "unknown" )
         try:
             # Use the persistent session from the class constructor.
@@ -202,9 +200,15 @@ class JsonActionClient:
             # This catches MaxRetryError, ConnectionRefusedError, etc.
             self.logger.error( f"FATAL CONNECTION FAILURE: Server at {self.endpoint} is unreachable. Details: {connection_error}" )
             raise JsonActionConnectionError( f"Server connection failed: {connection_error}", self.endpoint ) from connection_error
-        # --------------------------------------------------------------------
-        # Catch all other requests-related failures (e.g., Timeout, SSL error)
-        # --------------------------------------------------------------------
+        # -----------------------------------------
+        # Catch any Timeout (server not responding)
+        # -----------------------------------------
+        except requests.exceptions.Timeout as timeout_error:
+            # Raise a clean, readable error to suppress the messy original stack trace.
+            raise JsonActionError( f"Timeout: Server failed to respond to POST {self.endpoint} within {self.http_timeout}s." ) from timeout_error
+        # -----------------------------------------------------------
+        # Catch all other requests-related failures (e.g., SSL error)
+        # -----------------------------------------------------------
         except requests.exceptions.RequestException as request_error:
             # This will catch Timeout, SSLError, and any other RequestException subclasses
             # not explicitly caught above (like HTTPError from raise_for_status()).
@@ -212,7 +216,6 @@ class JsonActionClient:
             self.logger.error( f"Request: {json.dumps( data )}" )
             # Using the base JsonActionError for anything else
             raise JsonActionError( f"Request failed: {request_error}" ) from request_error
-
 
     def login( self, username: str | None = None, password: str | None = None ) -> None:
         """
@@ -241,7 +244,6 @@ class JsonActionClient:
         # Store the authToken in the configuration.
         self.auth_token = response['authToken']
 
-
     def logout( self ) -> None:
         """
         Log out of the JSON Action server.
@@ -253,7 +255,6 @@ class JsonActionClient:
         }
         self.post_json( delete_session )
         self.auth_token = None
-
 
     def build_basic_request( self, api: str | None = None, action: str | None = None ) -> dict:
         """
@@ -305,7 +306,6 @@ class JsonActionConnectionError( JsonActionError ):
     Exception for errors preventing a request from completing (e.g., server down).
     """
 
-
     def __init__( self, message, endpoint_url ):
         # Call the base class constructor with the message
         super().__init__( message )
@@ -318,7 +318,6 @@ class JsonActionApiError( JsonActionError ):
     """
     FairCom API returned a non-zero error code.
     """
-
 
     def __init__( self, error_code: int, error_message: str, action: str = "unknown", response_json: dict | None = None ) -> None:
         self.error_code = error_code
