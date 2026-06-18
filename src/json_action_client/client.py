@@ -199,13 +199,13 @@ class JsonActionClient:
         except requests.exceptions.ConnectionError as connection_error:
             # This catches MaxRetryError, ConnectionRefusedError, etc.
             self.logger.error( f"FATAL CONNECTION FAILURE: Server at {self.endpoint} is unreachable. Details: {connection_error}" )
-            raise JsonActionConnectionError( f"Server connection failed: {connection_error}", self.endpoint )
+            raise JsonActionConnectionError( f"Server connection failed: {connection_error}", self.endpoint ) from None
         # -----------------------------------------
         # Catch any Timeout (server not responding)
         # -----------------------------------------
         except requests.exceptions.Timeout:
             # Raise a clean, readable error to suppress the messy original stack trace.
-            raise JsonActionError( f"Timeout: Server failed to respond to POST {self.endpoint} within {self.http_timeout}s." )
+            raise JsonActionError( f"Timeout: Server failed to respond to POST {self.endpoint} within {self.http_timeout}s." ) from None
         # -----------------------------------------------------------
         # Catch all other requests-related failures (e.g., SSL error)
         # -----------------------------------------------------------
@@ -215,7 +215,7 @@ class JsonActionClient:
             self.logger.error( f"Unexpected request error!: {request_error}" )
             self.logger.error( f"Request: {json.dumps( data )}" )
             # Using the base JsonActionError for anything else
-            raise JsonActionError( f"Request failed: {request_error}" )
+            raise JsonActionError( f"Request failed: {request_error}" ) from None
 
     def login( self, username: str | None = None, password: str | None = None ) -> None:
         """
