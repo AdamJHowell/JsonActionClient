@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "faircom-json-action-client"
-version = "0.0.8"
+version = "0.0.10"
 authors = [
     { name = "Adam Howell", email = "698228+AdamJHowell@users.noreply.github.com" },
 ]
