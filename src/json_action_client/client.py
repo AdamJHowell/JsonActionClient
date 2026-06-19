@@ -210,8 +210,7 @@ class JsonActionClient:
         # Catch all other requests-related failures (e.g., SSL error)
         # -----------------------------------------------------------
         except requests.exceptions.RequestException as request_error:
-            # This will catch Timeout, SSLError, and any other RequestException subclasses
-            # not explicitly caught above (like HTTPError from raise_for_status()).
+            # This will catch SSLError, and any other RequestException subclasses not explicitly caught above (like HTTPError from raise_for_status()).
             self.logger.error( f"Unexpected request error!: {request_error}" )
             self.logger.error( f"Request: {json.dumps( data )}" )
             # Using the base JsonActionError for anything else
