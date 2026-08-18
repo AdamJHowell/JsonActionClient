@@ -180,19 +180,31 @@ class JsonActionClient:
             # Use the persistent session from the class constructor.
             self.logger.debug( f"Posting '{action}' to {self.endpoint}..." )
             post_response = self._session.post( self.endpoint, json = data, timeout = self.http_timeout )
+
+            # Attempt to parse the JSON to capture any embedded API error details.
+            try:
+                response_json = post_response.json()
+            except ValueError:
+                response_json = { }
+
+            # Check if FairCom gave us a standard JSON response with an errorCode.
+            if response_json and "errorCode" in response_json:
+                if response_json['errorCode'] == 0:
+                    return response_json
+                else:
+                    # Raise custom API error using the JSON body, effectively overriding generic 400-level HTTP errors.
+                    raise JsonActionApiError(
+                        error_code = response_json["errorCode"],
+                        error_message = response_json["errorMessage"],
+                        action = action,
+                        response_json = response_json,
+                        status_code = post_response.status_code
+                    )
+
             # This raises requests.exceptions.HTTPError for 4xx/5xx status codes.
             post_response.raise_for_status()
+            return response_json or { }
 
-            response_json = post_response.json()
-            if "errorCode" in response_json and response_json['errorCode'] == 0:
-                return response_json
-            else:
-                raise JsonActionApiError(
-                    error_code = response_json.get( "errorCode" ),
-                    error_message = response_json.get( "errorMessage" ),
-                    action = action,
-                    response_json = response_json
-                )
         # -----------------------------------------------
         # Catch any ConnectionError (server down/refused)
         # -----------------------------------------------
@@ -213,7 +225,7 @@ class JsonActionClient:
             # This will catch SSLError, and any other RequestException subclasses not explicitly caught above (like HTTPError from raise_for_status()).
             self.logger.error( f"Unexpected request error!: {request_error}" )
             self.logger.error( f"Request: {json.dumps( data )}" )
-            # Using the base JsonActionError for anything else
+            # Using the base JsonActionError for anything else.
             raise JsonActionError( f"Request failed: {request_error}" ) from None
 
     def login( self, username: str | None = None, password: str | None = None ) -> None:
@@ -306,10 +318,10 @@ class JsonActionConnectionError( JsonActionError ):
     """
 
     def __init__( self, message, endpoint_url ):
-        # Call the base class constructor with the message
+        # Call the base class constructor with the message.
         super().__init__( message )
 
-        # Store custom data on the exception object
+        # Store custom data on the exception object.
         self.endpoint_url = endpoint_url
 
 
@@ -318,12 +330,13 @@ class JsonActionApiError( JsonActionError ):
     FairCom API returned a non-zero error code.
     """
 
-    def __init__( self, error_code: int, error_message: str, action: str = "unknown", response_json: dict | None = None ) -> None:
+    def __init__( self, error_code: int, error_message: str, action: str = "unknown", response_json: dict | None = None, status_code: int | None = None ) -> None:
         self.error_code = error_code
         self.error_message = error_message
         self.action = action
         self.response_json = response_json or { }
+        self.status_code = status_code
 
-        # Build the message automatically inside the exception
-        message = f"JSON Action error for '{self.action}', errorCode: {self.error_code}, errorMessage: {self.error_message}"
+        # Build the message automatically inside the exception.
+        message = f"JSON Action error for '{self.action}' (HTTP {self.status_code}), errorCode: {self.error_code}, errorMessage: {self.error_message}"
         super().__init__( message )
