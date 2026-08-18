@@ -201,8 +201,9 @@ class JsonActionClient:
                         status_code = post_response.status_code
                     )
 
-            # This raises requests.exceptions.HTTPError for 4xx/5xx status codes.
+            # This raises requests.exceptions.HTTPError for HTTP status codes from 400 to 599.
             post_response.raise_for_status()
+            # This handles edge cases where the server returns a non-zero errorCode and the HTTP status code was not in the 400-599 range.
             return response_json or { }
 
         # -----------------------------------------------
@@ -219,10 +220,27 @@ class JsonActionClient:
             # Raise a clean, readable error to suppress the messy original stack trace.
             raise JsonActionError( f"Timeout: Server failed to respond to POST {self.endpoint} within {self.http_timeout}s." ) from None
         # -----------------------------------------------------------
-        # Catch all other requests-related failures (e.g., SSL error)
+        # Catch HTTP Errors (e.g., 404 Not Found, 500 Internal Error)
+        # -----------------------------------------------------------
+        except requests.exceptions.HTTPError as http_error:
+            # Conditionally format the HTTP status part.
+            http_error_status_code = None
+            http_info = "HTTP Error"
+            if isinstance( http_error.response, requests.models.Response ):
+                http_error_status_code = http_error.response.status_code
+                http_info = f"HTTP Error {http_error_status_code}"
+
+            self.logger.error( f"{http_info} at {self.endpoint}: {http_error}" )
+            raise JsonActionHttpError(
+                message = f"HTTP Error: {http_error}",
+                status_code = http_error_status_code,
+                endpoint_url = self.endpoint
+            ) from None
+        # -----------------------------------------------------------
+        # Catch all other Requests related failures (e.g., SSL error)
         # -----------------------------------------------------------
         except requests.exceptions.RequestException as request_error:
-            # This will catch SSLError, and any other RequestException subclasses not explicitly caught above (like HTTPError from raise_for_status()).
+            # This will catch SSLError and any other RequestException subclasses not explicitly caught above.
             self.logger.error( f"Unexpected request error!: {request_error}" )
             self.logger.error( f"Request: {json.dumps( data )}" )
             # Using the base JsonActionError for anything else.
@@ -230,7 +248,7 @@ class JsonActionClient:
 
     def login( self, username: str | None = None, password: str | None = None ) -> None:
         """
-        Log in to the JSON Action server, storing the authToken in the configuration, and return the authToken.
+        Log in to the FairCom server and store the authToken in a class attribute.
 
         :param username: The username to log in with.
         :param password: The password to log in with.
@@ -252,12 +270,12 @@ class JsonActionClient:
         }
         # Log in and save the response.
         response = self.post_json( create_session )
-        # Store the authToken in the configuration.
+        # Store the authToken in the auth_token class attribute.
         self.auth_token = response['authToken']
 
     def logout( self ) -> None:
         """
-        Log out of the JSON Action server.
+        Log out of the FairCom server by deleting the session associated with the current authToken.
         """
         delete_session = {
             "api":       "admin",
@@ -269,18 +287,18 @@ class JsonActionClient:
 
     def build_basic_request( self, api: str | None = None, action: str | None = None ) -> dict:
         """
-        Helper to build a basic request dictionary with standard fields initialized.
-        Automatically includes the current authToken if logged in.
+        A helper to build a basic FairCom JSON Action API request with standard fields initialized.
+        This will automatically include the current authToken if logged in.
 
         Usage::
             # Create the skeleton request (authToken is auto-injected).
-            req = client.build_basic_request( api = "db", action = "listDatabases" )
+            request = client.build_basic_request( api = "db", action = "listDatabases" )
 
             # Customize it.
-            req['params']['maxRecords'] = 20
+            request['params']['maxRecords'] = 20
 
             # Send it.
-            response = client.post_json( req )
+            response = client.post_json( request )
 
         :param api: The target API (e.g., 'db', 'admin').
         :param action: The action to perform.
@@ -307,14 +325,14 @@ class JsonActionClient:
 
 class JsonActionError( Exception ):
     """
-    Base exception for FairCom JSON Action API errors.
+    The base exception for FairCom JSON Action API errors.
     """
     pass
 
 
 class JsonActionConnectionError( JsonActionError ):
     """
-    Exception for errors preventing a request from completing (e.g., server down).
+    This exception is for errors preventing a request from completing (e.g., server down).
     """
 
     def __init__( self, message, endpoint_url ):
@@ -327,7 +345,7 @@ class JsonActionConnectionError( JsonActionError ):
 
 class JsonActionApiError( JsonActionError ):
     """
-    FairCom API returned a non-zero error code.
+    This is generated when the FairCom JSON Action API returns a non-zero error code.
     """
 
     def __init__( self, error_code: int, error_message: str, action: str = "unknown", response_json: dict | None = None, status_code: int | None = None ) -> None:
@@ -337,6 +355,20 @@ class JsonActionApiError( JsonActionError ):
         self.response_json = response_json or { }
         self.status_code = status_code
 
-        # Build the message automatically inside the exception.
-        message = f"JSON Action error for '{self.action}' (HTTP {self.status_code}), errorCode: {self.error_code}, errorMessage: {self.error_message}"
+        # Conditionally format the HTTP status part.
+        http_info = f" (HTTP {self.status_code})" if self.status_code is not None else ""
+
+        # Build the final message automatically inside the exception.
+        message = f"JSON Action error for '{self.action}'{http_info}, errorCode: {self.error_code}, errorMessage: {self.error_message}"
         super().__init__( message )
+
+
+class JsonActionHttpError( JsonActionError ):
+    """
+    This exception is raised when the server returns an HTTP status code in the 400 to 599 range.
+    """
+
+    def __init__( self, message: str, status_code: int | None = None, endpoint_url: str | None = None ) -> None:
+        super().__init__( message )
+        self.status_code = status_code
+        self.endpoint_url = endpoint_url
