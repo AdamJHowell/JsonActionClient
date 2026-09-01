@@ -93,9 +93,12 @@ class JsonActionClient:
         :param key_file: An optional client key file, in PEM format, to use for mTLS authentication.
         :param client_pass: An optional passphrase used to unlock the client key.  If the client key is not encrypted, leave blank.
         :param description: An optional description string to give to this session.
-            This description is used by FairCom server administrators to distinguish different sessions.
+            This description is used as a convenience by FairCom server administrators to distinguish different sessions.
+            This description is a default that can be overwritten by the kwargs passed to the login() method.
         :param session_idle_timeout: How long the FairCom server should wait before considering this session inactive.
-            When this timer is reached, the server will close out the session and the authToken will no longer be valid.
+            Defaults to 300 seconds (5 minutes).
+            If this timer is reached with no activity, the server will close out the session and the authToken will no longer be valid.
+            This timeout is a default that can be overwritten by the kwargs passed to the login() method.
         :param http_timeout: How long to wait for a response from an HTTP POST, in seconds.
         """
         self.endpoint = endpoint
@@ -206,13 +209,6 @@ class JsonActionClient:
             # This handles edge cases where the server returns a non-zero errorCode and the HTTP status code was not in the 400-599 range.
             return response_json or { }
 
-        # -----------------------------------------------
-        # Catch any ConnectionError (server down/refused)
-        # -----------------------------------------------
-        except requests.exceptions.ConnectionError as connection_error:
-            # This catches MaxRetryError, ConnectionRefusedError, etc.
-            self.logger.error( f"FATAL CONNECTION FAILURE: Server at {self.endpoint} is unreachable. Details: {connection_error}" )
-            raise JsonActionConnectionError( f"Server connection failed: {connection_error}", self.endpoint ) from None
         # -----------------------------------------
         # Catch any Timeout (server not responding)
         # -----------------------------------------
@@ -236,27 +232,79 @@ class JsonActionClient:
                 status_code = http_error_status_code,
                 endpoint_url = self.endpoint
             ) from None
-        # -----------------------------------------------------------
-        # Catch all other Requests related failures (e.g., SSL error)
-        # -----------------------------------------------------------
+        # ---------------------------------------------------------------
+        # Catch SSL/TLS Errors (e.g., bad certificate, handshake failure)
+        # ---------------------------------------------------------------
+        except requests.exceptions.SSLError as ssl_error:
+            self.logger.error( f"TLS/SSL Error at {self.endpoint}: {ssl_error}" )
+            raise JsonActionTlsError(
+                message = f"TLS Error: {ssl_error}",
+                endpoint_url = self.endpoint
+            ) from None
+        # -----------------------------------------------
+        # Catch any ConnectionError (server down/refused)
+        # -----------------------------------------------
+        except requests.exceptions.ConnectionError as connection_error:
+            # This catches MaxRetryError, ConnectionRefusedError, etc.
+            self.logger.error( f"FATAL CONNECTION FAILURE: Server at {self.endpoint} is unreachable. Details: {connection_error}" )
+            raise JsonActionConnectionError( f"Server connection failed: {connection_error}", self.endpoint ) from None
+        # -----------------------------------------
+        # Catch all other Requests related failures
+        # -----------------------------------------
         except requests.exceptions.RequestException as request_error:
-            # This will catch SSLError and any other RequestException subclasses not explicitly caught above.
+            # This will catch any other RequestException subclasses not explicitly caught above.
             self.logger.error( f"Unexpected request error!: {request_error}" )
             self.logger.error( f"Request: {json.dumps( data )}" )
             # Using the base JsonActionError for anything else.
             raise JsonActionError( f"Request failed: {request_error}" ) from None
 
-    def login( self, username: str | None = None, password: str | None = None, **kwargs ) -> None:
+    def login( self, username: str | None = None, password: str | None = None, response_options: dict | None = None, **kwargs ) -> None:
         """
         Log in to the FairCom server and store the authToken in a class attribute.
 
         See the `createSession documentation <https://documentation.faircom.com/sessions-and-services-api-actions/createsession>`_ for more details on available parameters.
 
+        Example
+        ::
+            client.login(
+                username = "myUserName",
+                password = "myPassword",
+                response_options = {
+                    "binaryFormat": "hex",
+                    "dataFormat": "objects",
+                    "numberFormat": "string",
+                    "variantFormat": "json"
+                },
+                defaultDebug = "max",
+                defaultBinaryFormat = "hex",
+                defaultVariantFormat = "binary",
+                defaultDatabaseName = "ctreeSQL",
+                defaultOwnerName = "admin",
+                defaultResponseOptions = {
+                    "dataFormat": "objects",
+                    "numberFormat": "string",
+                    "binaryFormat": "hex",
+                    "variantFormat": "variantObject"
+                },
+                idleConnectionTimeoutSeconds = 60,
+                idleCursorTimeoutSeconds = 60
+            )
+        Note that the 'defaultResponseOptions' dictionary is nested inside the main kwargs, while 'response_options' is a top-level parameter.
+        Also note that the names of kwargs are not quoted, but the keys in nested dictionaries like 'defaultResponseOptions' are quoted because they are passed as a dictionary.
+
         :param username: The username to log in with.
         :param password: The password to log in with.
-        :param kwargs: Additional optional parameters to pass to the createSession action (e.g., defaultDatabaseName, defaultOwnerName).
-        :raises ValueError: If the client certificate is missing AND credentials are not provided.
+        :param response_options: An optional dictionary for root-level responseOptions.
+        :param kwargs: Additional optional parameters to pass into the 'params' object (e.g., defaultDatabaseName="faircom").
+        :raises JsonActionError: If no credentials or client certificate are provided.
         """
+        # Enforce the requirement: either credentials or a client certificate must exist.
+        if not (username and password) and not self._session.cert:
+            # We must also check the adapter to see if an encrypted cert was mounted.
+            has_encrypted_cert = any( isinstance( adapter, EncryptedCertAdapter ) for adapter in self._session.adapters.values() )
+            if not has_encrypted_cert:
+                raise JsonActionError( "You must provide either a username/password or configure a client certificate in __init__." )
+
         params = { }
         # Only include username/password in params if they are provided.
         if username and password:
@@ -264,6 +312,8 @@ class JsonActionClient:
             params["password"] = password
         # Set the session timeout.
         params["idleConnectionTimeoutSeconds"] = self.idle_connection_timeout_seconds
+        if self.description:
+            params["description"] = self.description
         # Set any extra settings passed in via kwargs.
         params.update( kwargs )
 
@@ -273,6 +323,10 @@ class JsonActionClient:
             "params": params,
             "debug":  "max",
         }
+        # Attach responseOptions if provided.
+        if response_options:
+            create_session["responseOptions"] = response_options
+
         # Log in and save the response.
         response = self.post_json( create_session )
         # Store the authToken in the auth_token class attribute.
@@ -376,4 +430,14 @@ class JsonActionHttpError( JsonActionError ):
     def __init__( self, message: str, status_code: int | None = None, endpoint_url: str | None = None ) -> None:
         super().__init__( message )
         self.status_code = status_code
+        self.endpoint_url = endpoint_url
+
+
+class JsonActionTlsError( JsonActionError ):
+    """
+    This exception is raised when an SSL/TLS verification or handshake error occurs.
+    """
+
+    def __init__( self, message: str, endpoint_url: str | None = None ) -> None:
+        super().__init__( message )
         self.endpoint_url = endpoint_url
