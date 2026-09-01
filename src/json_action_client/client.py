@@ -246,12 +246,15 @@ class JsonActionClient:
             # Using the base JsonActionError for anything else.
             raise JsonActionError( f"Request failed: {request_error}" ) from None
 
-    def login( self, username: str | None = None, password: str | None = None ) -> None:
+    def login( self, username: str | None = None, password: str | None = None, **kwargs ) -> None:
         """
         Log in to the FairCom server and store the authToken in a class attribute.
 
+        See the `createSession documentation <https://documentation.faircom.com/sessions-and-services-api-actions/createsession>`_ for more details on available parameters.
+
         :param username: The username to log in with.
         :param password: The password to log in with.
+        :param kwargs: Additional optional parameters to pass to the createSession action (e.g., defaultDatabaseName, defaultOwnerName).
         :raises ValueError: If the client certificate is missing AND credentials are not provided.
         """
         params = { }
@@ -259,8 +262,10 @@ class JsonActionClient:
         if username and password:
             params["username"] = username
             params["password"] = password
-        # Set the session timeout to 30 seconds.
+        # Set the session timeout.
         params["idleConnectionTimeoutSeconds"] = self.idle_connection_timeout_seconds
+        # Set any extra settings passed in via kwargs.
+        params.update( kwargs )
 
         create_session = {
             "api":    "admin",
